@@ -5,6 +5,7 @@ namespace ElevatorSystem.Application.Events.ElevatorCommands;
 /// <summary>
 /// Command to submit a new elevator request through the robust processing pipeline
 /// </summary>
+[Message("elevator.request.submit", persistent: true)]
 public class SubmitElevatorRequestCommand : BaseCommand
 {
     public ElevatorRequest Request { get; }

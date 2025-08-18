@@ -10,6 +10,7 @@ namespace ElevatorSystem.Application.Events.CommandHandlers;
 /// <summary>
 /// Command handler for adding elevator requests
 /// </summary>
+[CommandHandler("elevator-requests", priority: 1, maxRetries: 3)]
 public class AddElevatorRequestCommandHandler : BaseCommandHandler<AddElevatorRequestCommand, bool>
 {
     private readonly IElevatorRepository _elevatorRepository;

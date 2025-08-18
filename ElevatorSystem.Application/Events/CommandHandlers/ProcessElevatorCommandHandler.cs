@@ -10,6 +10,7 @@ namespace ElevatorSystem.Application.Events.CommandHandlers;
 /// <summary>
 /// Command handler for processing elevator operations
 /// </summary>
+[CommandHandler("elevator-processing", priority: 2, requiresOrdering: true)]
 public class ProcessElevatorCommandHandler : BaseCommandHandler<ProcessElevatorCommand>
 {
     private readonly IElevatorRepository _elevatorRepository;

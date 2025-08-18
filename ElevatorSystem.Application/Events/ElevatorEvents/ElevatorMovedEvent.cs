@@ -5,6 +5,7 @@ namespace ElevatorSystem.Application.Events.ElevatorEvents;
 /// <summary>
 /// Event published when an elevator moves to a new floor
 /// </summary>
+[Message("elevator.moved", persistent: true)]
 public class ElevatorMovedEvent : BaseEvent
 {
     public ElevatorMovedEvent(int elevatorId, int fromFloor, int toFloor, ElevatorDirection direction)

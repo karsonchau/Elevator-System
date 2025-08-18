@@ -9,6 +9,7 @@ namespace ElevatorSystem.Application.Events.CommandHandlers;
 /// <summary>
 /// Robust command handler for submitting elevator requests with failure handling
 /// </summary>
+[CommandHandler("elevator-submissions", priority: 0, maxRetries: 5)]
 public class SubmitElevatorRequestCommandHandler : BaseCommandHandler<SubmitElevatorRequestCommand, bool>
 {
     private readonly ICommandBus _commandBus;

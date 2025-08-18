@@ -7,6 +7,7 @@ namespace ElevatorSystem.Application.Events.Handlers;
 /// Event handler that logs all elevator events for monitoring and debugging
 /// Demonstrates Phase 1 event infrastructure in action
 /// </summary>
+[EventHandler("elevator-events", "event-logging")]
 public class ElevatorEventLogger
 {
     private readonly ILogger<ElevatorEventLogger> _logger;

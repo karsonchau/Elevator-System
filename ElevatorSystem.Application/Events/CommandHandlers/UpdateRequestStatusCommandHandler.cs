@@ -7,6 +7,7 @@ namespace ElevatorSystem.Application.Events.CommandHandlers;
 /// <summary>
 /// Command handler for updating elevator request status
 /// </summary>
+[CommandHandler("status-updates", priority: 1)]
 public class UpdateRequestStatusCommandHandler : BaseCommandHandler<UpdateRequestStatusCommand>
 {
     private readonly IElevatorRequestRepository _requestRepository;

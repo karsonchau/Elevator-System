@@ -3,6 +3,7 @@ namespace ElevatorSystem.Application.Events.ElevatorEvents;
 /// <summary>
 /// Event published when a passenger is picked up by an elevator
 /// </summary>
+[Message("passenger.picked_up", persistent: true)]
 public class PassengerPickedUpEvent : BaseEvent
 {
     public PassengerPickedUpEvent(Guid requestId, int elevatorId, int floor, int destinationFloor)
