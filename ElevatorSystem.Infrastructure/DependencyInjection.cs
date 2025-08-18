@@ -25,8 +25,7 @@ public static class DependencyInjection
 
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        // Services
-        services.AddSingleton<IElevatorService, ElevatorService>();
+        // Core application services
         
         // Supporting services for separation of concerns
         services.AddSingleton<IElevatorMovementService, ElevatorMovementService>();

@@ -11,7 +11,6 @@ namespace ElevatorSystem.Infrastructure.Events;
 public class InMemoryCommandBus : ICommandBus
 {
     private readonly ConcurrentDictionary<Type, object> _handlers = new();
-    private readonly ConcurrentDictionary<Type, object> _validators = new();
     private readonly ILogger<InMemoryCommandBus> _logger;
 
     public InMemoryCommandBus(ILogger<InMemoryCommandBus> logger)
@@ -29,8 +28,6 @@ public class InMemoryCommandBus : ICommandBus
         _logger.LogDebug("Sending command {CommandType} with ID {CommandId}", 
             commandType.Name, command.CommandId);
 
-        // Validate command if validator is registered
-        await ValidateCommandAsync(command, cancellationToken);
 
         if (!_handlers.TryGetValue(commandType, out var handlerObj))
         {
@@ -70,8 +67,6 @@ public class InMemoryCommandBus : ICommandBus
         _logger.LogDebug("Sending command {CommandType} with ID {CommandId} expecting response {ResponseType}", 
             commandType.Name, command.CommandId, typeof(TResponse).Name);
 
-        // Validate command if validator is registered
-        await ValidateCommandAsync(command, cancellationToken);
 
         if (!_handlers.TryGetValue(commandType, out var handlerObj))
         {
@@ -125,34 +120,4 @@ public class InMemoryCommandBus : ICommandBus
             commandType.Name, typeof(TResponse).Name);
     }
 
-    public void RegisterValidator<T>(ICommandValidator<T> validator) where T : class, ICommand
-    {
-        if (validator == null)
-            throw new ArgumentNullException(nameof(validator));
-
-        var commandType = typeof(T);
-        _validators.TryAdd(commandType, validator);
-        
-        _logger.LogDebug("Registered validator for command type {CommandType}", commandType.Name);
-    }
-
-    private async Task ValidateCommandAsync<T>(T command, CancellationToken cancellationToken) where T : class, ICommand
-    {
-        var commandType = typeof(T);
-        
-        if (_validators.TryGetValue(commandType, out var validatorObj) && 
-            validatorObj is ICommandValidator<T> validator)
-        {
-            var validationResult = await validator.ValidateAsync(command, cancellationToken);
-            
-            if (!validationResult.IsValid)
-            {
-                var errors = string.Join(", ", validationResult.Errors);
-                _logger.LogWarning("Command validation failed for {CommandType} with ID {CommandId}: {Errors}", 
-                    commandType.Name, command.CommandId, errors);
-                    
-                throw new ArgumentException($"Command validation failed: {errors}");
-            }
-        }
-    }
 }
