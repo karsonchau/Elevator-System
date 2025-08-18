@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using ElevatorSystem.Application.Configuration;
 using ElevatorSystem.Application.Interfaces;
 using ElevatorSystem.Domain.Entities;
+using ElevatorSystem.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -61,15 +62,30 @@ public class ElevatorService : IElevatorService
 
     public async Task<Guid> RequestElevatorAsync(int currentFloor, int destinationFloor)
     {
-        var request = new ElevatorRequest(currentFloor, destinationFloor);
-        
-        await _requestRepository.AddAsync(request);
-        await _requestWriter.WriteAsync(request);
-        
-        _logger.LogInformation("Elevator request created: {RequestId} from floor {CurrentFloor} to {DestinationFloor}", 
-            request.Id, currentFloor, destinationFloor);
-        
-        return request.Id;
+        try
+        {
+            var request = new ElevatorRequest(currentFloor, destinationFloor);
+            
+            await _requestRepository.AddAsync(request);
+            await _requestWriter.WriteAsync(request);
+            
+            _logger.LogInformation("Elevator request created: {RequestId} from floor {CurrentFloor} to {DestinationFloor}", 
+                request.Id, currentFloor, destinationFloor);
+            
+            return request.Id;
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Invalid elevator request from floor {CurrentFloor} to {DestinationFloor}: {Error}", 
+                currentFloor, destinationFloor, ex.Message);
+            throw new InvalidOperationException($"Invalid elevator request: {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error creating elevator request from floor {CurrentFloor} to {DestinationFloor}", 
+                currentFloor, destinationFloor);
+            throw;
+        }
     }
 
     public async Task ProcessRequestsAsync(CancellationToken cancellationToken)
@@ -102,13 +118,29 @@ public class ElevatorService : IElevatorService
             {
                 _logger.LogInformation("Processing incoming request: {RequestId}", request.Id);
                 
-                await _elevatorController.AddRequestAsync(request);
+                var success = await _elevatorController.AddRequestAsync(request);
                 
-                _logger.LogInformation("Added request {RequestId} to elevator controller", request.Id);
+                if (success)
+                {
+                    _logger.LogInformation("Successfully added request {RequestId} to elevator controller", request.Id);
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to add request {RequestId} to elevator controller - validation or availability issue", request.Id);
+                    
+                    // Mark as completed to prevent retry loops
+                    request.Status = ElevatorRequestStatus.Completed;
+                    await _requestRepository.UpdateAsync(request);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing incoming request: {RequestId}", request.Id);
+                _logger.LogError(ex, "Unexpected error processing request {RequestId} (floors {CurrentFloor} to {DestinationFloor})", 
+                    request.Id, request.CurrentFloor, request.DestinationFloor);
+                
+                // Mark as completed to prevent infinite retry loops
+                request.Status = ElevatorRequestStatus.Completed;
+                await _requestRepository.UpdateAsync(request);
             }
         }
     }

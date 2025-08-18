@@ -29,23 +29,54 @@ public class ElevatorController : IElevatorController
         _requestManager = requestManager;
     }
 
-    public async Task AddRequestAsync(ElevatorRequest request)
+    public async Task<bool> AddRequestAsync(ElevatorRequest request)
     {
-        // Immediately assign request to best elevator
-        var bestElevator = await FindBestElevatorForRequest(request);
-        
-        InitializeElevatorCollections(bestElevator.Id);
+        try
+        {
+            // Validate request against available elevators
+            await ValidateRequestAsync(request);
+            
+            // Immediately assign request to best elevator
+            var bestElevator = await FindBestElevatorForRequest(request);
+            
+            InitializeElevatorCollections(bestElevator.Id);
 
-        _elevatorActiveRequests[bestElevator.Id].Add(request);
-        
-        // Add pickup floor to floors needing service
-        _elevatorFloorsNeedingService[bestElevator.Id].Add(request.CurrentFloor);
-        
-        request.Status = ElevatorRequestStatus.Assigned;
-        await _requestRepository.UpdateAsync(request);
-        
-        _logger.LogInformation("Added and immediately assigned request {RequestId} from floor {CurrentFloor} to {DestinationFloor} to elevator {ElevatorId}", 
-            request.Id, request.CurrentFloor, request.DestinationFloor, bestElevator.Id);
+            _elevatorActiveRequests[bestElevator.Id].Add(request);
+            
+            // Add pickup floor to floors needing service
+            _elevatorFloorsNeedingService[bestElevator.Id].Add(request.CurrentFloor);
+            
+            request.Status = ElevatorRequestStatus.Assigned;
+            await _requestRepository.UpdateAsync(request);
+            
+            _logger.LogInformation("Added and immediately assigned request {RequestId} from floor {CurrentFloor} to {DestinationFloor} to elevator {ElevatorId}", 
+                request.Id, request.CurrentFloor, request.DestinationFloor, bestElevator.Id);
+            
+            return true;
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError("Null request provided: {Error}", ex.Message);
+            return false;
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            _logger.LogError("Request validation failed for request {RequestId} (floors {CurrentFloor} to {DestinationFloor}): {Error}", 
+                request?.Id, request?.CurrentFloor, request?.DestinationFloor, ex.Message);
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError("Cannot process request {RequestId} (floors {CurrentFloor} to {DestinationFloor}): {Error}", 
+                request?.Id, request?.CurrentFloor, request?.DestinationFloor, ex.Message);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error adding request {RequestId} (floors {CurrentFloor} to {DestinationFloor})", 
+                request?.Id, request?.CurrentFloor, request?.DestinationFloor);
+            return false;
+        }
     }
 
     public async Task ProcessElevatorAsync(Elevator elevator, CancellationToken cancellationToken)
@@ -139,6 +170,39 @@ public class ElevatorController : IElevatorController
             .Where(e => e.Status != ElevatorStatus.OutOfService)
             .OrderBy(e => Math.Abs(e.CurrentFloor - request.CurrentFloor))
             .First();
+    }
+
+    private async Task ValidateRequestAsync(ElevatorRequest request)
+    {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        var elevators = await _elevatorRepository.GetAllAsync();
+        var availableElevators = elevators.Where(e => e.Status != ElevatorStatus.OutOfService).ToList();
+        
+        if (!availableElevators.Any())
+            throw new InvalidOperationException("No elevators are currently available for service.");
+        
+        // Get the overall building floor range from all elevators
+        var minFloor = availableElevators.Min(e => e.MinFloor);
+        var maxFloor = availableElevators.Max(e => e.MaxFloor);
+        
+        if (request.CurrentFloor < minFloor || request.CurrentFloor > maxFloor)
+            throw new ArgumentOutOfRangeException(nameof(request), 
+                $"Current floor {request.CurrentFloor} is outside the valid range ({minFloor} to {maxFloor}).");
+                
+        if (request.DestinationFloor < minFloor || request.DestinationFloor > maxFloor)
+            throw new ArgumentOutOfRangeException(nameof(request), 
+                $"Destination floor {request.DestinationFloor} is outside the valid range ({minFloor} to {maxFloor}).");
+        
+        // Check if there's at least one elevator that can serve both floors
+        var canServeRequest = availableElevators.Any(e => 
+            request.CurrentFloor >= e.MinFloor && request.CurrentFloor <= e.MaxFloor &&
+            request.DestinationFloor >= e.MinFloor && request.DestinationFloor <= e.MaxFloor);
+            
+        if (!canServeRequest)
+            throw new InvalidOperationException(
+                $"No available elevator can serve a request from floor {request.CurrentFloor} to floor {request.DestinationFloor}.");
     }
 
     private void InitializeElevatorCollections(int elevatorId)
