@@ -57,6 +57,10 @@ public class ElevatorController : IElevatorController, IDisposable
                 // Add pickup floor to floors needing service
                 _elevatorFloorsNeedingService[bestElevator.Id].TryAdd(request.CurrentFloor, true);
                 
+                // Also add destination floor since we know it will be needed
+                // This ensures proper floor tracking for the linear scan algorithm
+                _elevatorFloorsNeedingService[bestElevator.Id].TryAdd(request.DestinationFloor, true);
+                
                 request.Status = ElevatorRequestStatus.Assigned;
                 
                 _logger.LogInformation("Added and immediately assigned request {RequestId} from floor {CurrentFloor} to {DestinationFloor} to elevator {ElevatorId}", 
@@ -168,6 +172,9 @@ public class ElevatorController : IElevatorController, IDisposable
             {
                 var floorsForStop = GetFloorsNeedingServiceSet(elevator.Id);
                 await _requestManager.ProcessCurrentFloorActionsAsync(elevator, currentRequests, floorsForStop, cancellationToken);
+                
+                // Update the actual floors needing service from the modified set
+                UpdateFloorsNeedingServiceFromSet(elevator.Id, floorsForStop);
                 
                 // Remove completed requests and update collections
                 RemoveCompletedRequestsFromCollections(elevator.Id, currentRequests);
@@ -282,6 +289,18 @@ public class ElevatorController : IElevatorController, IDisposable
     {
         InitializeElevatorCollections(elevatorId);
         return new SortedSet<int>(_elevatorFloorsNeedingService[elevatorId].Keys);
+    }
+    
+    private void UpdateFloorsNeedingServiceFromSet(int elevatorId, SortedSet<int> updatedFloors)
+    {
+        InitializeElevatorCollections(elevatorId);
+        var floorsDict = _elevatorFloorsNeedingService[elevatorId];
+        
+        // Add new floors that were added to the set
+        foreach (var floor in updatedFloors)
+        {
+            floorsDict.TryAdd(floor, true);
+        }
     }
     
     private void RemoveCompletedRequestsFromCollections(int elevatorId, List<ElevatorRequest> currentRequests)

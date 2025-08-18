@@ -1,5 +1,6 @@
 using ElevatorSystem.Application.Interfaces;
 using ElevatorSystem.Application.Services;
+using ElevatorSystem.Application.Events;
 using ElevatorSystem.Domain.Entities;
 using ElevatorSystem.Domain.Enums;
 using FluentAssertions;
@@ -15,13 +16,15 @@ public class ElevatorRequestManagerTests
 {
     private readonly Mock<IElevatorRequestRepository> _mockRepository;
     private readonly Mock<ILogger<ElevatorRequestManager>> _mockLogger;
+    private readonly Mock<IEventBus> _mockEventBus;
     private readonly ElevatorRequestManager _requestManager;
 
     public ElevatorRequestManagerTests()
     {
         _mockRepository = new Mock<IElevatorRequestRepository>();
         _mockLogger = new Mock<ILogger<ElevatorRequestManager>>();
-        _requestManager = new ElevatorRequestManager(_mockRepository.Object, _mockLogger.Object);
+        _mockEventBus = new Mock<IEventBus>();
+        _requestManager = new ElevatorRequestManager(_mockRepository.Object, _mockLogger.Object, _mockEventBus.Object);
     }
 
     [Theory]

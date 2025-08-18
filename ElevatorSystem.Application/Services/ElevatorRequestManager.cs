@@ -1,4 +1,6 @@
 using ElevatorSystem.Application.Interfaces;
+using ElevatorSystem.Application.Events;
+using ElevatorSystem.Application.Events.ElevatorEvents;
 using ElevatorSystem.Domain.Entities;
 using ElevatorSystem.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -12,13 +14,16 @@ public class ElevatorRequestManager : IElevatorRequestManager
 {
     private readonly IElevatorRequestRepository _requestRepository;
     private readonly ILogger<ElevatorRequestManager> _logger;
+    private readonly IEventBus _eventBus;
 
     public ElevatorRequestManager(
         IElevatorRequestRepository requestRepository,
-        ILogger<ElevatorRequestManager> logger)
+        ILogger<ElevatorRequestManager> logger,
+        IEventBus eventBus)
     {
         _requestRepository = requestRepository;
         _logger = logger;
+        _eventBus = eventBus;
     }
 
     /// <summary>
@@ -52,6 +57,10 @@ public class ElevatorRequestManager : IElevatorRequestManager
             // Retry repository update with exponential backoff
             await RetryRepositoryUpdateAsync(() => _requestRepository.UpdateAsync(request), 
                 request.Id, "dropoff completion", cancellationToken);
+                
+            // Publish passenger dropped off event (Phase 1 event infrastructure)
+            var dropoffEvent = new PassengerDroppedOffEvent(request.Id, elevator.Id, currentFloor);
+            await _eventBus.PublishAsync(dropoffEvent, cancellationToken);
             
             hasActions = true;
         }
@@ -73,6 +82,10 @@ public class ElevatorRequestManager : IElevatorRequestManager
             // Retry repository update with exponential backoff
             await RetryRepositoryUpdateAsync(() => _requestRepository.UpdateAsync(request), 
                 request.Id, "pickup assignment", cancellationToken);
+                
+            // Publish passenger picked up event (Phase 1 event infrastructure)
+            var pickupEvent = new PassengerPickedUpEvent(request.Id, elevator.Id, currentFloor, request.DestinationFloor);
+            await _eventBus.PublishAsync(pickupEvent, cancellationToken);
             
             // Add destination floor to floors needing service
             floorsNeedingService.Add(request.DestinationFloor);
@@ -172,6 +185,11 @@ public class ElevatorRequestManager : IElevatorRequestManager
     private bool IsPassengerGoingInSameDirection(ElevatorRequest request, ElevatorDirection elevatorDirection)
     {
         var passengerDirection = request.DestinationFloor > request.CurrentFloor ? ElevatorDirection.Up : ElevatorDirection.Down;
+        
+        // If elevator is idle, it can pick up any passenger
+        if (elevatorDirection == ElevatorDirection.Idle)
+            return true;
+            
         return passengerDirection == elevatorDirection;
     }
 

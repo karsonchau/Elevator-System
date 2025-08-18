@@ -1,4 +1,6 @@
 using ElevatorSystem.Application.Interfaces;
+using ElevatorSystem.Application.Events;
+using ElevatorSystem.Application.Events.ElevatorEvents;
 using ElevatorSystem.Domain.Entities;
 using ElevatorSystem.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -12,13 +14,16 @@ public class ElevatorMovementService : IElevatorMovementService
 {
     private readonly IElevatorRepository _elevatorRepository;
     private readonly ILogger<ElevatorMovementService> _logger;
+    private readonly IEventBus _eventBus;
 
     public ElevatorMovementService(
         IElevatorRepository elevatorRepository,
-        ILogger<ElevatorMovementService> logger)
+        ILogger<ElevatorMovementService> logger,
+        IEventBus eventBus)
     {
         _elevatorRepository = elevatorRepository;
         _logger = logger;
+        _eventBus = eventBus;
     }
 
     /// <summary>
@@ -45,6 +50,7 @@ public class ElevatorMovementService : IElevatorMovementService
                     
                     await Task.Delay(elevator.FloorMovementTimeMs, cancellationToken);
                     
+                    var previousFloor = elevator.CurrentFloor;
                     var nextFloor = elevator.Direction == ElevatorDirection.Up 
                         ? elevator.CurrentFloor + 1 
                         : elevator.CurrentFloor - 1;
@@ -62,6 +68,10 @@ public class ElevatorMovementService : IElevatorMovementService
                     // Retry repository update with exponential backoff
                     await RetryRepositoryUpdateAsync(() => _elevatorRepository.UpdateAsync(elevator), 
                         elevator.Id, "elevator position", cancellationToken);
+                    
+                    // Publish elevator moved event (Phase 1 event infrastructure)
+                    var elevatorMovedEvent = new ElevatorMovedEvent(elevator.Id, previousFloor, nextFloor, elevator.Direction);
+                    await _eventBus.PublishAsync(elevatorMovedEvent, cancellationToken);
                 }
                 
                 return; // Success, exit retry loop

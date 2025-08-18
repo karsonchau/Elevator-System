@@ -1,5 +1,6 @@
 using ElevatorSystem.Application.Interfaces;
 using ElevatorSystem.Application.Services;
+using ElevatorSystem.Application.Events;
 using ElevatorSystem.Domain.Entities;
 using ElevatorSystem.Domain.Enums;
 using FluentAssertions;
@@ -15,13 +16,15 @@ public class ElevatorMovementServiceTests
 {
     private readonly Mock<IElevatorRepository> _mockRepository;
     private readonly Mock<ILogger<ElevatorMovementService>> _mockLogger;
+    private readonly Mock<IEventBus> _mockEventBus;
     private readonly ElevatorMovementService _movementService;
 
     public ElevatorMovementServiceTests()
     {
         _mockRepository = new Mock<IElevatorRepository>();
         _mockLogger = new Mock<ILogger<ElevatorMovementService>>();
-        _movementService = new ElevatorMovementService(_mockRepository.Object, _mockLogger.Object);
+        _mockEventBus = new Mock<IEventBus>();
+        _movementService = new ElevatorMovementService(_mockRepository.Object, _mockLogger.Object, _mockEventBus.Object);
     }
 
     [Theory]

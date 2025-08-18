@@ -1,6 +1,9 @@
 using ElevatorSystem.Application.Interfaces;
 using ElevatorSystem.Application.Services;
+using ElevatorSystem.Application.Events;
+using ElevatorSystem.Application.Events.Handlers;
 using ElevatorSystem.Infrastructure.Repositories;
+using ElevatorSystem.Infrastructure.Events;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ElevatorSystem.Infrastructure;
@@ -29,6 +32,13 @@ public static class DependencyInjection
         
         // Scenario reader for file-based simulation
         services.AddSingleton<IScenarioReader, ScenarioFileReader>();
+        
+        // Event infrastructure (Phase 1 - In-memory implementations)
+        services.AddSingleton<IEventBus, InMemoryEventBus>();
+        services.AddSingleton<ICommandBus, InMemoryCommandBus>();
+        
+        // Event handlers
+        services.AddSingleton<ElevatorEventLogger>();
         
         return services;
     }

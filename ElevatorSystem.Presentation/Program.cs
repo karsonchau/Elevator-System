@@ -1,6 +1,9 @@
 using ElevatorSystem.Application.Configuration;
 using ElevatorSystem.Application.Interfaces;
 using ElevatorSystem.Application.Models;
+using ElevatorSystem.Application.Events;
+using ElevatorSystem.Application.Events.Handlers;
+using ElevatorSystem.Application.Events.ElevatorEvents;
 using ElevatorSystem.Domain.Entities;
 using ElevatorSystem.Domain.Enums;
 using ElevatorSystem.Infrastructure;
@@ -18,6 +21,9 @@ public class Program
         var host = CreateHostBuilder(args).Build();
         
         await InitializeElevators(host.Services);
+        
+        // Initialize event infrastructure (Phase 1)
+        await InitializeEventHandlers(host.Services);
         
         var elevatorController = host.Services.GetRequiredService<IElevatorController>();
         var elevatorRepository = host.Services.GetRequiredService<IElevatorRepository>();
@@ -199,5 +205,24 @@ public class Program
         }
         
         logger.LogInformation("=== Single Elevator Simulation Complete ===");
+    }
+
+    private static async Task InitializeEventHandlers(IServiceProvider services)
+    {
+        var eventBus = services.GetRequiredService<IEventBus>();
+        var eventLogger = services.GetRequiredService<ElevatorEventLogger>();
+        var logger = services.GetRequiredService<ILogger<Program>>();
+
+        // Subscribe to all elevator events for Phase 1 demonstration
+        eventBus.Subscribe<ElevatorMovedEvent>(eventLogger.HandleElevatorMovedEvent);
+        eventBus.Subscribe<PassengerPickedUpEvent>(eventLogger.HandlePassengerPickedUpEvent);
+        eventBus.Subscribe<PassengerDroppedOffEvent>(eventLogger.HandlePassengerDroppedOffEvent);
+        eventBus.Subscribe<ElevatorRequestReceivedEvent>(eventLogger.HandleElevatorRequestReceivedEvent);
+        eventBus.Subscribe<ElevatorRequestAssignedEvent>(eventLogger.HandleElevatorRequestAssignedEvent);
+        eventBus.Subscribe<ElevatorStatusChangedEvent>(eventLogger.HandleElevatorStatusChangedEvent);
+
+        logger.LogInformation("Event handlers initialized successfully");
+        
+        await Task.CompletedTask;
     }
 }
