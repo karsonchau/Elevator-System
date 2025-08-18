@@ -4,6 +4,9 @@ using ElevatorSystem.Application.Models;
 using ElevatorSystem.Application.Events;
 using ElevatorSystem.Application.Events.Handlers;
 using ElevatorSystem.Application.Events.ElevatorEvents;
+using ElevatorSystem.Application.Events.CommandHandlers;
+using ElevatorSystem.Application.Events.CommandValidators;
+using ElevatorSystem.Application.Events.ElevatorCommands;
 using ElevatorSystem.Domain.Entities;
 using ElevatorSystem.Domain.Enums;
 using ElevatorSystem.Infrastructure;
@@ -24,6 +27,9 @@ public class Program
         
         // Initialize event infrastructure (Phase 1)
         await InitializeEventHandlers(host.Services);
+        
+        // Initialize command infrastructure (Phase 2)
+        await InitializeCommandHandlers(host.Services);
         
         var elevatorController = host.Services.GetRequiredService<IElevatorController>();
         var elevatorRepository = host.Services.GetRequiredService<IElevatorRepository>();
@@ -222,6 +228,33 @@ public class Program
         eventBus.Subscribe<ElevatorStatusChangedEvent>(eventLogger.HandleElevatorStatusChangedEvent);
 
         logger.LogInformation("Event handlers initialized successfully");
+        
+        await Task.CompletedTask;
+    }
+
+    private static async Task InitializeCommandHandlers(IServiceProvider services)
+    {
+        var commandBus = services.GetRequiredService<ICommandBus>();
+        var logger = services.GetRequiredService<ILogger<Program>>();
+
+        // Register command handlers
+        var addRequestHandler = services.GetRequiredService<AddElevatorRequestCommandHandler>();
+        var processElevatorHandler = services.GetRequiredService<ProcessElevatorCommandHandler>();
+        
+        commandBus.RegisterHandler<AddElevatorRequestCommand, bool>(addRequestHandler);
+        commandBus.RegisterHandler<ProcessElevatorCommand>(processElevatorHandler);
+
+        // Register command validators (if the command bus supports it)
+        if (commandBus is Infrastructure.Events.InMemoryCommandBus inMemoryCommandBus)
+        {
+            var addRequestValidator = services.GetRequiredService<AddElevatorRequestCommandValidator>();
+            var processElevatorValidator = services.GetRequiredService<ProcessElevatorCommandValidator>();
+            
+            inMemoryCommandBus.RegisterValidator<AddElevatorRequestCommand>(addRequestValidator);
+            inMemoryCommandBus.RegisterValidator<ProcessElevatorCommand>(processElevatorValidator);
+        }
+
+        logger.LogInformation("Command handlers and validators initialized successfully");
         
         await Task.CompletedTask;
     }

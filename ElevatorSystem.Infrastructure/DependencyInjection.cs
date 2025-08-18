@@ -2,9 +2,14 @@ using ElevatorSystem.Application.Interfaces;
 using ElevatorSystem.Application.Services;
 using ElevatorSystem.Application.Events;
 using ElevatorSystem.Application.Events.Handlers;
+using ElevatorSystem.Application.Events.CommandHandlers;
+using ElevatorSystem.Application.Events.CommandValidators;
+using ElevatorSystem.Application.Events.ElevatorCommands;
 using ElevatorSystem.Infrastructure.Repositories;
 using ElevatorSystem.Infrastructure.Events;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Concurrent;
+using ElevatorSystem.Domain.Entities;
 
 namespace ElevatorSystem.Infrastructure;
 
@@ -27,8 +32,13 @@ public static class DependencyInjection
         services.AddSingleton<IElevatorMovementService, ElevatorMovementService>();
         services.AddSingleton<IElevatorRequestManager, ElevatorRequestManager>();
         
-        // Use simple polling-based elevator controller instead of event-driven
-        services.AddSingleton<IElevatorController, ElevatorController>();
+        // Shared collections for elevator state (Phase 2 command infrastructure)
+        services.AddSingleton<ConcurrentDictionary<int, ConcurrentBag<ElevatorRequest>>>();
+        services.AddSingleton<ConcurrentDictionary<int, ConcurrentDictionary<int, bool>>>();
+        services.AddSingleton<ConcurrentDictionary<int, object>>();
+        
+        // Command-based elevator controller (Phase 2)
+        services.AddSingleton<IElevatorController, CommandBasedElevatorController>();
         
         // Scenario reader for file-based simulation
         services.AddSingleton<IScenarioReader, ScenarioFileReader>();
@@ -39,6 +49,14 @@ public static class DependencyInjection
         
         // Event handlers
         services.AddSingleton<ElevatorEventLogger>();
+        
+        // Command handlers (Phase 2)
+        services.AddSingleton<AddElevatorRequestCommandHandler>();
+        services.AddSingleton<ProcessElevatorCommandHandler>();
+        
+        // Command validators (Phase 2)
+        services.AddSingleton<AddElevatorRequestCommandValidator>();
+        services.AddSingleton<ProcessElevatorCommandValidator>();
         
         return services;
     }

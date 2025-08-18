@@ -11,6 +11,7 @@ namespace ElevatorSystem.Infrastructure.Events;
 public class InMemoryCommandBus : ICommandBus
 {
     private readonly ConcurrentDictionary<Type, object> _handlers = new();
+    private readonly ConcurrentDictionary<Type, object> _validators = new();
     private readonly ILogger<InMemoryCommandBus> _logger;
 
     public InMemoryCommandBus(ILogger<InMemoryCommandBus> logger)
@@ -26,7 +27,10 @@ public class InMemoryCommandBus : ICommandBus
         var commandType = typeof(T);
         
         _logger.LogDebug("Sending command {CommandType} with ID {CommandId}", 
-            command.CommandType, command.CommandId);
+            commandType.Name, command.CommandId);
+
+        // Validate command if validator is registered
+        await ValidateCommandAsync(command, cancellationToken);
 
         if (!_handlers.TryGetValue(commandType, out var handlerObj))
         {
@@ -34,18 +38,18 @@ public class InMemoryCommandBus : ICommandBus
             throw new InvalidOperationException($"No handler registered for command type {commandType.Name}");
         }
 
-        if (handlerObj is Func<T, CancellationToken, Task> handler)
+        if (handlerObj is ICommandHandler<T> handler)
         {
             try
             {
-                await handler(command, cancellationToken);
+                await handler.HandleAsync(command, cancellationToken);
                 _logger.LogDebug("Completed processing command {CommandType} with ID {CommandId}", 
-                    command.CommandType, command.CommandId);
+                    commandType.Name, command.CommandId);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing command {CommandType} with ID {CommandId}", 
-                    command.CommandType, command.CommandId);
+                    commandType.Name, command.CommandId);
                 throw;
             }
         }
@@ -64,7 +68,10 @@ public class InMemoryCommandBus : ICommandBus
         var commandType = typeof(TCommand);
         
         _logger.LogDebug("Sending command {CommandType} with ID {CommandId} expecting response {ResponseType}", 
-            command.CommandType, command.CommandId, typeof(TResponse).Name);
+            commandType.Name, command.CommandId, typeof(TResponse).Name);
+
+        // Validate command if validator is registered
+        await ValidateCommandAsync(command, cancellationToken);
 
         if (!_handlers.TryGetValue(commandType, out var handlerObj))
         {
@@ -72,19 +79,19 @@ public class InMemoryCommandBus : ICommandBus
             throw new InvalidOperationException($"No handler registered for command type {commandType.Name}");
         }
 
-        if (handlerObj is Func<TCommand, CancellationToken, Task<TResponse>> handler)
+        if (handlerObj is ICommandHandler<TCommand, TResponse> handler)
         {
             try
             {
-                var response = await handler(command, cancellationToken);
+                var response = await handler.HandleAsync(command, cancellationToken);
                 _logger.LogDebug("Completed processing command {CommandType} with ID {CommandId}", 
-                    command.CommandType, command.CommandId);
+                    commandType.Name, command.CommandId);
                 return response;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing command {CommandType} with ID {CommandId}", 
-                    command.CommandType, command.CommandId);
+                    commandType.Name, command.CommandId);
                 throw;
             }
         }
@@ -94,7 +101,7 @@ public class InMemoryCommandBus : ICommandBus
         }
     }
 
-    public void RegisterHandler<T>(Func<T, CancellationToken, Task> handler) where T : class, ICommand
+    public void RegisterHandler<T>(ICommandHandler<T> handler) where T : class, ICommand
     {
         if (handler == null)
             throw new ArgumentNullException(nameof(handler));
@@ -105,7 +112,7 @@ public class InMemoryCommandBus : ICommandBus
         _logger.LogDebug("Registered handler for command type {CommandType}", commandType.Name);
     }
 
-    public void RegisterHandler<TCommand, TResponse>(Func<TCommand, CancellationToken, Task<TResponse>> handler) 
+    public void RegisterHandler<TCommand, TResponse>(ICommandHandler<TCommand, TResponse> handler) 
         where TCommand : class, ICommand
     {
         if (handler == null)
@@ -116,5 +123,36 @@ public class InMemoryCommandBus : ICommandBus
         
         _logger.LogDebug("Registered handler for command type {CommandType} with response type {ResponseType}", 
             commandType.Name, typeof(TResponse).Name);
+    }
+
+    public void RegisterValidator<T>(ICommandValidator<T> validator) where T : class, ICommand
+    {
+        if (validator == null)
+            throw new ArgumentNullException(nameof(validator));
+
+        var commandType = typeof(T);
+        _validators.TryAdd(commandType, validator);
+        
+        _logger.LogDebug("Registered validator for command type {CommandType}", commandType.Name);
+    }
+
+    private async Task ValidateCommandAsync<T>(T command, CancellationToken cancellationToken) where T : class, ICommand
+    {
+        var commandType = typeof(T);
+        
+        if (_validators.TryGetValue(commandType, out var validatorObj) && 
+            validatorObj is ICommandValidator<T> validator)
+        {
+            var validationResult = await validator.ValidateAsync(command, cancellationToken);
+            
+            if (!validationResult.IsValid)
+            {
+                var errors = string.Join(", ", validationResult.Errors);
+                _logger.LogWarning("Command validation failed for {CommandType} with ID {CommandId}: {Errors}", 
+                    commandType.Name, command.CommandId, errors);
+                    
+                throw new ArgumentException($"Command validation failed: {errors}");
+            }
+        }
     }
 }
