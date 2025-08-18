@@ -5,6 +5,7 @@ using ElevatorSystem.Application.Events.Handlers;
 using ElevatorSystem.Application.Events.CommandHandlers;
 using ElevatorSystem.Application.Events.CommandValidators;
 using ElevatorSystem.Application.Events.ElevatorCommands;
+using ElevatorSystem.Application.Configuration;
 using ElevatorSystem.Infrastructure.Repositories;
 using ElevatorSystem.Infrastructure.Events;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,8 +38,8 @@ public static class DependencyInjection
         services.AddSingleton<ConcurrentDictionary<int, ConcurrentDictionary<int, bool>>>();
         services.AddSingleton<ConcurrentDictionary<int, object>>();
         
-        // Command-based elevator controller (Phase 2)
-        services.AddSingleton<IElevatorController, CommandBasedElevatorController>();
+        // Robust elevator controller with failure handling (Phase 3)
+        services.AddSingleton<IElevatorController, RobustElevatorController>();
         
         // Scenario reader for file-based simulation
         services.AddSingleton<IScenarioReader, ScenarioFileReader>();
@@ -57,6 +58,15 @@ public static class DependencyInjection
         // Command validators (Phase 2)
         services.AddSingleton<AddElevatorRequestCommandValidator>();
         services.AddSingleton<ProcessElevatorCommandValidator>();
+        
+        // Phase 3: Robust processing pipeline services
+        services.AddSingleton<IRetryPolicyManager, RetryPolicyManager>();
+        services.AddSingleton<IRequestStatusTracker, RequestStatusTracker>();
+        services.AddSingleton<IHealthMonitor, HealthMonitor>();
+        
+        // Phase 3: Enhanced command handlers
+        services.AddSingleton<SubmitElevatorRequestCommandHandler>();
+        services.AddSingleton<UpdateRequestStatusCommandHandler>();
         
         return services;
     }

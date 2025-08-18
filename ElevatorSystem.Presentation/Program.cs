@@ -82,6 +82,7 @@ public class Program
             {
                 services.Configure<ElevatorSettings>(context.Configuration.GetSection(ElevatorSettings.SectionName));
                 services.Configure<SimulationSettings>(context.Configuration.GetSection(SimulationSettings.SectionName));
+                services.Configure<RequestProcessingSettings>(context.Configuration.GetSection(RequestProcessingSettings.SectionName));
                 services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Information));
                 services.AddInfrastructure();
                 services.AddApplication();
@@ -237,12 +238,19 @@ public class Program
         var commandBus = services.GetRequiredService<ICommandBus>();
         var logger = services.GetRequiredService<ILogger<Program>>();
 
-        // Register command handlers
+        // Register command handlers (Phase 2)
         var addRequestHandler = services.GetRequiredService<AddElevatorRequestCommandHandler>();
         var processElevatorHandler = services.GetRequiredService<ProcessElevatorCommandHandler>();
         
         commandBus.RegisterHandler<AddElevatorRequestCommand, bool>(addRequestHandler);
         commandBus.RegisterHandler<ProcessElevatorCommand>(processElevatorHandler);
+        
+        // Register command handlers (Phase 3)
+        var submitRequestHandler = services.GetRequiredService<SubmitElevatorRequestCommandHandler>();
+        var updateStatusHandler = services.GetRequiredService<UpdateRequestStatusCommandHandler>();
+        
+        commandBus.RegisterHandler<SubmitElevatorRequestCommand, bool>(submitRequestHandler);
+        commandBus.RegisterHandler<UpdateRequestStatusCommand>(updateStatusHandler);
 
         // Register command validators (if the command bus supports it)
         if (commandBus is Infrastructure.Events.InMemoryCommandBus inMemoryCommandBus)
