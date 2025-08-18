@@ -6,5 +6,6 @@ public enum ElevatorRequestStatus
     Assigned,
     InProgress,
     Completed,
-    Cancelled
+    Cancelled,
+    Failed
 }

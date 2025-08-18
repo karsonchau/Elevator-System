@@ -27,8 +27,12 @@ public class ElevatorRequestManager : IElevatorRequestManager
     /// <param name="elevator">The elevator at the current floor.</param>
     /// <param name="requests">List of requests for this elevator.</param>
     /// <param name="floorsNeedingService">Collection tracking floors needing service.</param>
-    public async Task ProcessCurrentFloorActionsAsync(Elevator elevator, List<ElevatorRequest> requests, SortedSet<int> floorsNeedingService)
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    public async Task ProcessCurrentFloorActionsAsync(Elevator elevator, List<ElevatorRequest> requests, 
+        SortedSet<int> floorsNeedingService, CancellationToken cancellationToken = default)
     {
+        // Constants moved to retry method
+        
         elevator.SetStatus(ElevatorStatus.Loading);
         
         var currentFloor = elevator.CurrentFloor;
@@ -37,11 +41,18 @@ public class ElevatorRequestManager : IElevatorRequestManager
         // Process dropoffs first
         var dropoffRequests = requests.Where(r => r.Status == ElevatorRequestStatus.InProgress && 
                                                   r.DestinationFloor == currentFloor).ToList();
+        
         foreach (var request in dropoffRequests)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
             _logger.LogInformation("Floor {Floor}: Dropoff passenger", currentFloor);
             request.Status = ElevatorRequestStatus.Completed;
-            await _requestRepository.UpdateAsync(request);
+            
+            // Retry repository update with exponential backoff
+            await RetryRepositoryUpdateAsync(() => _requestRepository.UpdateAsync(request), 
+                request.Id, "dropoff completion", cancellationToken);
+            
             hasActions = true;
         }
         
@@ -50,12 +61,18 @@ public class ElevatorRequestManager : IElevatorRequestManager
                                                  r.CurrentFloor == currentFloor &&
                                                  IsPassengerGoingInSameDirection(r, elevator.Direction) &&
                                                  CanPickupPassenger(elevator, r, elevator.Direction)).ToList();
+        
         foreach (var request in pickupRequests)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
             _logger.LogInformation("Floor {Floor}: Pickup passenger going to {DestinationFloor}", 
                 currentFloor, request.DestinationFloor);
             request.Status = ElevatorRequestStatus.InProgress;
-            await _requestRepository.UpdateAsync(request);
+            
+            // Retry repository update with exponential backoff
+            await RetryRepositoryUpdateAsync(() => _requestRepository.UpdateAsync(request), 
+                request.Id, "pickup assignment", cancellationToken);
             
             // Add destination floor to floors needing service
             floorsNeedingService.Add(request.DestinationFloor);
@@ -65,8 +82,42 @@ public class ElevatorRequestManager : IElevatorRequestManager
         
         if (hasActions)
         {
-            await Task.Delay(elevator.LoadingTimeMs);
+            try
+            {
+                await Task.Delay(elevator.LoadingTimeMs, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("Loading operation cancelled for elevator {ElevatorId} at floor {Floor}", 
+                    elevator.Id, currentFloor);
+                throw;
+            }
         }
+    }
+    
+    private async Task RetryRepositoryUpdateAsync(Func<Task> updateAction, Guid requestId, string operation, CancellationToken cancellationToken)
+    {
+        const int maxRetries = 3;
+        const int baseDelayMs = 100;
+        
+        for (int attempt = 0; attempt < maxRetries; attempt++)
+        {
+            try
+            {
+                await updateAction();
+                return;
+            }
+            catch (Exception ex) when (attempt < maxRetries - 1 && !cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex, "Failed to update {Operation} for request {RequestId}, attempt {Attempt}/{MaxRetries}", 
+                    operation, requestId, attempt + 1, maxRetries);
+                
+                await Task.Delay(baseDelayMs * (int)Math.Pow(2, attempt), cancellationToken);
+            }
+        }
+        
+        // Final attempt - let exception bubble up
+        await updateAction();
     }
 
     /// <summary>

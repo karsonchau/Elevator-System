@@ -21,7 +21,9 @@ public interface IElevatorRequestManager
     /// <param name="elevator">The elevator at the current floor.</param>
     /// <param name="requests">Current requests for the elevator.</param>
     /// <param name="floorsNeedingService">Collection of floors that need service.</param>
-    Task ProcessCurrentFloorActionsAsync(Elevator elevator, List<ElevatorRequest> requests, SortedSet<int> floorsNeedingService);
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    Task ProcessCurrentFloorActionsAsync(Elevator elevator, List<ElevatorRequest> requests, 
+        SortedSet<int> floorsNeedingService, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Removes completed requests from the active request list and updates floors needing service.

@@ -50,6 +50,12 @@ public class Program
         
         logger.LogInformation("Simulation completed");
         
+        // Dispose elevator controller to clean up resources
+        if (elevatorController is IDisposable disposableController)
+        {
+            disposableController.Dispose();
+        }
+        
         // Ensure program exits after simulation
         Environment.Exit(0);
     }
