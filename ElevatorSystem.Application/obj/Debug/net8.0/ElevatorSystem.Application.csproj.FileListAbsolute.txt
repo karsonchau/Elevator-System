@@ -1,0 +1,15 @@
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/bin/Debug/net8.0/ElevatorSystem.Application.deps.json
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/bin/Debug/net8.0/ElevatorSystem.Application.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/bin/Debug/net8.0/ElevatorSystem.Application.pdb
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/bin/Debug/net8.0/ElevatorSystem.Domain.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/bin/Debug/net8.0/ElevatorSystem.Domain.pdb
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/obj/Debug/net8.0/ElevatorSystem.Application.csproj.AssemblyReference.cache
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/obj/Debug/net8.0/ElevatorSystem.Application.GeneratedMSBuildEditorConfig.editorconfig
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/obj/Debug/net8.0/ElevatorSystem.Application.AssemblyInfoInputs.cache
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/obj/Debug/net8.0/ElevatorSystem.Application.AssemblyInfo.cs
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/obj/Debug/net8.0/ElevatorSystem.Application.csproj.CoreCompileInputs.cache
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/obj/Debug/net8.0/Elevator.373BEBE6.Up2Date
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/obj/Debug/net8.0/ElevatorSystem.Application.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/obj/Debug/net8.0/refint/ElevatorSystem.Application.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/obj/Debug/net8.0/ElevatorSystem.Application.pdb
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Application/obj/Debug/net8.0/ref/ElevatorSystem.Application.dll

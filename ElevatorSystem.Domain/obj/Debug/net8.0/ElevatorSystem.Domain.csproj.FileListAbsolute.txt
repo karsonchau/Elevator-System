@@ -1,0 +1,11 @@
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Domain/bin/Debug/net8.0/ElevatorSystem.Domain.deps.json
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Domain/bin/Debug/net8.0/ElevatorSystem.Domain.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Domain/bin/Debug/net8.0/ElevatorSystem.Domain.pdb
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Domain/obj/Debug/net8.0/ElevatorSystem.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Domain/obj/Debug/net8.0/ElevatorSystem.Domain.AssemblyInfoInputs.cache
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Domain/obj/Debug/net8.0/ElevatorSystem.Domain.AssemblyInfo.cs
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Domain/obj/Debug/net8.0/ElevatorSystem.Domain.csproj.CoreCompileInputs.cache
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Domain/obj/Debug/net8.0/ElevatorSystem.Domain.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Domain/obj/Debug/net8.0/refint/ElevatorSystem.Domain.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Domain/obj/Debug/net8.0/ElevatorSystem.Domain.pdb
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Domain/obj/Debug/net8.0/ref/ElevatorSystem.Domain.dll

@@ -1,0 +1,17 @@
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/bin/Debug/net8.0/ElevatorSystem.Infrastructure.deps.json
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/bin/Debug/net8.0/ElevatorSystem.Infrastructure.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/bin/Debug/net8.0/ElevatorSystem.Infrastructure.pdb
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/bin/Debug/net8.0/ElevatorSystem.Application.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/bin/Debug/net8.0/ElevatorSystem.Domain.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/bin/Debug/net8.0/ElevatorSystem.Domain.pdb
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/bin/Debug/net8.0/ElevatorSystem.Application.pdb
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/obj/Debug/net8.0/ElevatorSystem.Infrastructure.csproj.AssemblyReference.cache
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/obj/Debug/net8.0/ElevatorSystem.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/obj/Debug/net8.0/ElevatorSystem.Infrastructure.AssemblyInfoInputs.cache
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/obj/Debug/net8.0/ElevatorSystem.Infrastructure.AssemblyInfo.cs
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/obj/Debug/net8.0/ElevatorSystem.Infrastructure.csproj.CoreCompileInputs.cache
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/obj/Debug/net8.0/Elevator.61046F69.Up2Date
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/obj/Debug/net8.0/ElevatorSystem.Infrastructure.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/obj/Debug/net8.0/refint/ElevatorSystem.Infrastructure.dll
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/obj/Debug/net8.0/ElevatorSystem.Infrastructure.pdb
+/Users/karsonchau/Development/ElevatorSystem/ElevatorSystem.Infrastructure/obj/Debug/net8.0/ref/ElevatorSystem.Infrastructure.dll
