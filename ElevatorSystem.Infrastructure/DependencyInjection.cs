@@ -37,8 +37,8 @@ public static class DependencyInjection
         services.AddSingleton<ConcurrentDictionary<int, ConcurrentDictionary<int, bool>>>();
         services.AddSingleton<ConcurrentDictionary<int, object>>();
         
-        // Robust elevator controller with failure handling (Phase 3)
-        services.AddSingleton<IElevatorController, RobustElevatorController>();
+        // Production-ready elevator controller with failure handling
+        services.AddSingleton<IElevatorController, ElevatorController>();
         
         // Scenario reader for file-based simulation
         services.AddSingleton<IScenarioReader, ScenarioFileReader>();
