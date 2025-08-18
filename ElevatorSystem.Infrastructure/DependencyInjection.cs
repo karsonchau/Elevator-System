@@ -21,8 +21,8 @@ public static class DependencyInjection
         services.AddSingleton<IElevatorService, ElevatorService>();
         
         // Supporting services for separation of concerns
-        services.AddSingleton<ElevatorMovementService>();
-        services.AddSingleton<ElevatorRequestManager>();
+        services.AddSingleton<IElevatorMovementService, ElevatorMovementService>();
+        services.AddSingleton<IElevatorRequestManager, ElevatorRequestManager>();
         
         // Use simple polling-based elevator controller instead of event-driven
         services.AddSingleton<IElevatorController, ElevatorController>();

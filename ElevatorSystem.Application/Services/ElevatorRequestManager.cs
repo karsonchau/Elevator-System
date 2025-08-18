@@ -8,7 +8,7 @@ namespace ElevatorSystem.Application.Services;
 /// <summary>
 /// Service responsible for managing elevator requests and passenger operations.
 /// </summary>
-public class ElevatorRequestManager
+public class ElevatorRequestManager : IElevatorRequestManager
 {
     private readonly IElevatorRequestRepository _requestRepository;
     private readonly ILogger<ElevatorRequestManager> _logger;

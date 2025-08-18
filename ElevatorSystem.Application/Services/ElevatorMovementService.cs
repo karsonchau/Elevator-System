@@ -8,7 +8,7 @@ namespace ElevatorSystem.Application.Services;
 /// <summary>
 /// Service responsible for handling elevator movement logic and navigation.
 /// </summary>
-public class ElevatorMovementService
+public class ElevatorMovementService : IElevatorMovementService
 {
     private readonly IElevatorRepository _elevatorRepository;
     private readonly ILogger<ElevatorMovementService> _logger;

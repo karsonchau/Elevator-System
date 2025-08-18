@@ -10,8 +10,8 @@ public class ElevatorController : IElevatorController
     private readonly IElevatorRepository _elevatorRepository;
     private readonly IElevatorRequestRepository _requestRepository;
     private readonly ILogger<ElevatorController> _logger;
-    private readonly ElevatorMovementService _movementService;
-    private readonly ElevatorRequestManager _requestManager;
+    private readonly IElevatorMovementService _movementService;
+    private readonly IElevatorRequestManager _requestManager;
     private readonly Dictionary<int, List<ElevatorRequest>> _elevatorActiveRequests = new();
     private readonly Dictionary<int, SortedSet<int>> _elevatorFloorsNeedingService = new();
 
@@ -19,8 +19,8 @@ public class ElevatorController : IElevatorController
         IElevatorRepository elevatorRepository,
         IElevatorRequestRepository requestRepository,
         ILogger<ElevatorController> logger,
-        ElevatorMovementService movementService,
-        ElevatorRequestManager requestManager)
+        IElevatorMovementService movementService,
+        IElevatorRequestManager requestManager)
     {
         _elevatorRepository = elevatorRepository;
         _requestRepository = requestRepository;
