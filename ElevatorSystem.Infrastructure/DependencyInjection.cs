@@ -18,8 +18,11 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         // Services
-        services.AddSingleton<IElevatorScheduler, ScanElevatorScheduler>();
         services.AddSingleton<IElevatorService, ElevatorService>();
+        
+        // Supporting services for separation of concerns
+        services.AddSingleton<ElevatorMovementService>();
+        services.AddSingleton<ElevatorRequestManager>();
         
         // Use simple polling-based elevator controller instead of event-driven
         services.AddSingleton<IElevatorController, ElevatorController>();

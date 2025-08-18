@@ -1,7 +1,10 @@
 using System.Threading.Channels;
+using ElevatorSystem.Application.Configuration;
 using ElevatorSystem.Application.Interfaces;
 using ElevatorSystem.Domain.Entities;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
 namespace ElevatorSystem.Application.Services;
 
 public class ElevatorService : IElevatorService
@@ -18,23 +21,42 @@ public class ElevatorService : IElevatorService
         IElevatorRequestRepository requestRepository,
         IElevatorRepository elevatorRepository,
         ILogger<ElevatorService> logger,
-        IElevatorController elevatorController)
+        IElevatorController elevatorController,
+        IOptions<ElevatorSettings> elevatorSettings)
     {
         _requestRepository = requestRepository;
         _elevatorRepository = elevatorRepository;
         _logger = logger;
         _elevatorController = elevatorController;
+        
+        var settings = elevatorSettings.Value;
+        var numberOfFloors = settings.MaxFloor - settings.MinFloor + 1;
+        var channelCapacity = CalculateChannelCapacity(numberOfFloors);
+        
+        _logger.LogInformation("Initializing elevator service with channel capacity {ChannelCapacity} for {NumberOfFloors} floors", 
+            channelCapacity, numberOfFloors);
 
-        var options = new BoundedChannelOptions(100)
+        var channelOptions = new BoundedChannelOptions(channelCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
             SingleReader = true,
             SingleWriter = false
         };
 
-        _requestChannel = Channel.CreateBounded<ElevatorRequest>(options);
+        _requestChannel = Channel.CreateBounded<ElevatorRequest>(channelOptions);
         _requestWriter = _requestChannel.Writer;
         _requestReader = _requestChannel.Reader;
+    }
+
+    /// <summary>
+    /// Calculates the appropriate channel capacity based on the number of floors.
+    /// Uses 2n formula to ensure sufficient capacity for concurrent requests.
+    /// </summary>
+    /// <param name="numberOfFloors">The total number of floors in the building.</param>
+    /// <returns>The calculated channel capacity.</returns>
+    private static int CalculateChannelCapacity(int numberOfFloors)
+    {
+        return numberOfFloors * 2;
     }
 
     public async Task<Guid> RequestElevatorAsync(int currentFloor, int destinationFloor)
@@ -52,7 +74,7 @@ public class ElevatorService : IElevatorService
 
     public async Task ProcessRequestsAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting optimized elevator request processing");
+        _logger.LogInformation("Starting elevator request processing");
 
         var requestProcessingTask = ProcessIncomingRequests(cancellationToken);
         var elevatorTasks = await StartElevatorProcessing(cancellationToken);

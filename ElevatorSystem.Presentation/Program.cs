@@ -1,6 +1,5 @@
 using ElevatorSystem.Application.Configuration;
 using ElevatorSystem.Application.Interfaces;
-using ElevatorSystem.Application.Services;
 using ElevatorSystem.Domain.Entities;
 using ElevatorSystem.Domain.Enums;
 using ElevatorSystem.Infrastructure;
@@ -105,11 +104,6 @@ public class Program
 
         var requests = new List<ElevatorRequest>();
         var simulationStartTime = DateTime.UtcNow;
-        var movementPath = new List<int> { 1, 3, 5, 8, 7, 6, 2, 1, 4, 9 }; // Expected path based on scenario
-        
-        // Track elevator movement path
-        var elevators = await elevatorRepository.GetAllAsync();
-        var primaryElevator = elevators.First();
         
         foreach (var (currentFloor, destinationFloor, requestTimeMs) in scenarios)
         {
@@ -156,19 +150,11 @@ public class Program
         // Wait a moment for final elevator actions to complete
         await Task.Delay(2000);
         
-        // Display movement path
-        if (movementPath.Any())
-        {
-            var pathString = string.Join(" → ", movementPath);
-            logger.LogInformation("Elevator Movement Path: {MovementPath}", pathString);
-            Console.WriteLine($"Elevator Movement Path: {pathString}");
-        }
-        
         // Get final elevator status and verify idle state
-        var elevators2 = await elevatorRepository.GetAllAsync();
+        var elevators = await elevatorRepository.GetAllAsync();
         var lastDestinationFloor = scenarios.Last().destinationFloor;
         
-        foreach (var elevator in elevators2)
+        foreach (var elevator in elevators)
         {
             logger.LogInformation("Elevator {ElevatorId}: Floor {CurrentFloor}, Status {Status}, Direction {Direction}", 
                 elevator.Id, elevator.CurrentFloor, elevator.Status, elevator.Direction);
@@ -178,21 +164,21 @@ public class Program
                 elevator.Status == ElevatorStatus.Idle && 
                 elevator.Direction == ElevatorDirection.Idle)
             {
-                logger.LogInformation("✓ Elevator {ElevatorId} is correctly idling at floor {Floor} (last destination)", 
+                logger.LogInformation("Elevator {ElevatorId} is correctly idling at floor {Floor} (last destination)", 
                     elevator.Id, elevator.CurrentFloor);
-                Console.WriteLine($"✓ Elevator {elevator.Id} is correctly idling at floor {elevator.CurrentFloor} (last destination)");
+                Console.WriteLine($"Elevator {elevator.Id} is correctly idling at floor {elevator.CurrentFloor} (last destination)");
             }
             else if (elevator.CurrentFloor == lastDestinationFloor)
             {
-                logger.LogWarning("⚠ Elevator {ElevatorId} is at correct floor {Floor} but status is {Status}, direction is {Direction}", 
+                logger.LogWarning("Elevator {ElevatorId} is at correct floor {Floor} but status is {Status}, direction is {Direction}", 
                     elevator.Id, elevator.CurrentFloor, elevator.Status, elevator.Direction);
-                Console.WriteLine($"⚠ Elevator {elevator.Id} is at correct floor {elevator.CurrentFloor} but not fully idle");
+                Console.WriteLine($"Elevator {elevator.Id} is at correct floor {elevator.CurrentFloor} but not fully idle");
             }
             else
             {
-                logger.LogWarning("⚠ Elevator {ElevatorId} is at floor {CurrentFloor} but should be at floor {ExpectedFloor}", 
+                logger.LogWarning("Elevator {ElevatorId} is at floor {CurrentFloor} but should be at floor {ExpectedFloor}", 
                     elevator.Id, elevator.CurrentFloor, lastDestinationFloor);
-                Console.WriteLine($"⚠ Elevator {elevator.Id} is at floor {elevator.CurrentFloor} but should be at floor {lastDestinationFloor}");
+                Console.WriteLine($"Elevator {elevator.Id} is at floor {elevator.CurrentFloor} but should be at floor {lastDestinationFloor}");
             }
         }
         

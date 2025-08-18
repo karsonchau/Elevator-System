@@ -47,14 +47,12 @@ public class ElevatorRequestTests
     }
 
     [Fact]
-    public void Constructor_WithSameCurrentAndDestinationFloor_ShouldCreateRequest()
+    public void Constructor_WithSameCurrentAndDestinationFloor_ShouldThrowArgumentException()
     {
-        // Act
-        var request = new ElevatorRequest(5, 5);
-
-        // Assert - Constructor doesn't validate, just sets values
-        request.CurrentFloor.Should().Be(5);
-        request.DestinationFloor.Should().Be(5);
+        // Act & Assert
+        FluentActions.Invoking(() => new ElevatorRequest(5, 5))
+            .Should().Throw<ArgumentException>()
+            .WithMessage("Current floor cannot be the same as destination floor.*");
     }
 
     [Theory]
@@ -130,12 +128,12 @@ public class ElevatorRequestTests
     }
 
     [Theory]
-    [InlineData(3, 8, 2, true)]  // Request from 3 to 8, elevator at 2 going up
-    [InlineData(3, 8, 5, false)] // Request from 3 to 8, elevator at 5 (already passed)
-    [InlineData(8, 3, 9, true)]  // Request from 8 to 3, elevator at 9 going down
-    [InlineData(8, 3, 2, false)] // Request from 8 to 3, elevator at 2 (already passed)
-    public void Direction_WithElevatorPosition_ShouldCalculateCorrectly(
-        int currentFloor, int destinationFloor, int elevatorFloor, bool canPickup)
+    [InlineData(3, 8)]  // Request from 3 to 8 (going up)
+    [InlineData(8, 3)]  // Request from 8 to 3 (going down)
+    [InlineData(1, 10)] // Request from 1 to 10 (going up)
+    [InlineData(10, 1)] // Request from 10 to 1 (going down)
+    public void Direction_WithFloorDifference_ShouldCalculateCorrectly(
+        int currentFloor, int destinationFloor)
     {
         // Arrange
         var request = new ElevatorRequest(currentFloor, destinationFloor);
