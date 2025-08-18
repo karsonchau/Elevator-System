@@ -1,5 +1,6 @@
 using ElevatorSystem.Application.Configuration;
 using ElevatorSystem.Application.Interfaces;
+using ElevatorSystem.Application.Models;
 using ElevatorSystem.Domain.Entities;
 using ElevatorSystem.Domain.Enums;
 using ElevatorSystem.Infrastructure;
@@ -30,8 +31,11 @@ public class Program
         var elevatorTasks = elevators.Select(elevator => 
             elevatorController.ProcessElevatorAsync(elevator, cts.Token)).ToArray();
         
+        var scenarioReader = host.Services.GetRequiredService<IScenarioReader>();
+        var configuration = host.Services.GetRequiredService<IConfiguration>();
+        
         // Run simulation
-        await RunSimulation(elevatorController, requestRepository, elevatorRepository, logger);
+        await RunSimulation(elevatorController, requestRepository, elevatorRepository, scenarioReader, configuration, logger);
         
         cts.Cancel();
         
@@ -59,6 +63,7 @@ public class Program
             .ConfigureServices((context, services) =>
             {
                 services.Configure<ElevatorSettings>(context.Configuration.GetSection(ElevatorSettings.SectionName));
+                services.Configure<SimulationSettings>(context.Configuration.GetSection(SimulationSettings.SectionName));
                 services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Information));
                 services.AddInfrastructure();
                 services.AddApplication();
@@ -89,27 +94,32 @@ public class Program
         }
     }
 
-    private static async Task RunSimulation(IElevatorController elevatorController, IElevatorRequestRepository requestRepository, IElevatorRepository elevatorRepository, ILogger<Program> logger)
+    private static async Task RunSimulation(IElevatorController elevatorController, IElevatorRequestRepository requestRepository, IElevatorRepository elevatorRepository, IScenarioReader scenarioReader, IConfiguration configuration, ILogger<Program> logger)
     {
         logger.LogInformation("=== Single Elevator System Simulation ===");
         
-        var scenarios = new[]
+        var simulationSettings = new SimulationSettings();
+        configuration.GetSection(SimulationSettings.SectionName).Bind(simulationSettings);
+        
+        IEnumerable<ElevatorScenario> scenarios;
+        try
         {
-            (currentFloor: 1, destinationFloor: 5, requestTimeMs: 0),
-            (currentFloor: 3, destinationFloor: 8, requestTimeMs: 1000),
-            (currentFloor: 7, destinationFloor: 2, requestTimeMs: 4000),
-            (currentFloor: 6, destinationFloor: 1, requestTimeMs: 6000),
-            (currentFloor: 4, destinationFloor: 9, requestTimeMs: 8000)
-        };
+            scenarios = await scenarioReader.ReadScenariosAsync(simulationSettings.ScenarioFilePath);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to load scenarios from file: {FilePath}", simulationSettings.ScenarioFilePath);
+            throw;
+        }
 
         var requests = new List<ElevatorRequest>();
         var simulationStartTime = DateTime.UtcNow;
         
-        foreach (var (currentFloor, destinationFloor, requestTimeMs) in scenarios)
+        foreach (var scenario in scenarios)
         {
             // Calculate how long to wait based on the request time
             var elapsedMs = (DateTime.UtcNow - simulationStartTime).TotalMilliseconds;
-            var waitTimeMs = Math.Max(0, requestTimeMs - elapsedMs);
+            var waitTimeMs = Math.Max(0, scenario.RequestTimeMs - elapsedMs);
             
             if (waitTimeMs > 0)
             {
@@ -117,9 +127,9 @@ public class Program
             }
             
             logger.LogInformation("t={ElapsedTime}ms: Requesting elevator from floor {CurrentFloor} to floor {DestinationFloor}", 
-                (int)(DateTime.UtcNow - simulationStartTime).TotalMilliseconds, currentFloor, destinationFloor);
+                (int)(DateTime.UtcNow - simulationStartTime).TotalMilliseconds, scenario.CurrentFloor, scenario.DestinationFloor);
             
-            var request = new ElevatorRequest(currentFloor, destinationFloor);
+            var request = new ElevatorRequest(scenario.CurrentFloor, scenario.DestinationFloor);
             requests.Add(request);
             await elevatorController.AddRequestAsync(request);
         }
@@ -152,7 +162,7 @@ public class Program
         
         // Get final elevator status and verify idle state
         var elevators = await elevatorRepository.GetAllAsync();
-        var lastDestinationFloor = scenarios.Last().destinationFloor;
+        var lastDestinationFloor = scenarios.Last().DestinationFloor;
         
         foreach (var elevator in elevators)
         {

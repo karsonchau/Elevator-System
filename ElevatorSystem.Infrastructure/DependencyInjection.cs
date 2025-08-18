@@ -27,6 +27,9 @@ public static class DependencyInjection
         // Use simple polling-based elevator controller instead of event-driven
         services.AddSingleton<IElevatorController, ElevatorController>();
         
+        // Scenario reader for file-based simulation
+        services.AddSingleton<IScenarioReader, ScenarioFileReader>();
+        
         return services;
     }
 }

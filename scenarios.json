@@ -1,0 +1,27 @@
+[
+  {
+    "currentFloor": 1,
+    "destinationFloor": 5,
+    "requestTimeMs": 0
+  },
+  {
+    "currentFloor": 3,
+    "destinationFloor": 8,
+    "requestTimeMs": 1000
+  },
+  {
+    "currentFloor": 7,
+    "destinationFloor": 2,
+    "requestTimeMs": 4000
+  },
+  {
+    "currentFloor": 6,
+    "destinationFloor": 1,
+    "requestTimeMs": 6000
+  },
+  {
+    "currentFloor": 4,
+    "destinationFloor": 9,
+    "requestTimeMs": 8000
+  }
+]
