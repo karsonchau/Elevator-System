@@ -19,7 +19,6 @@ public static class DependencyInjection
     {
         // Services
         services.AddSingleton<IElevatorService, ElevatorService>();
-        services.AddSingleton<ElevatorSimulationService>();
         
         // Supporting services for separation of concerns
         services.AddSingleton<IElevatorMovementService, ElevatorMovementService>();
