@@ -69,7 +69,7 @@ public class ElevatorMovementService : IElevatorMovementService
                     await RetryRepositoryUpdateAsync(() => _elevatorRepository.UpdateAsync(elevator), 
                         elevator.Id, "elevator position", cancellationToken);
                     
-                    // Publish elevator moved event (Phase 1 event infrastructure)
+                    // Publish elevator moved event for monitoring and logging
                     var elevatorMovedEvent = new ElevatorMovedEvent(elevator.Id, previousFloor, nextFloor, elevator.Direction);
                     await _eventBus.PublishAsync(elevatorMovedEvent, cancellationToken);
                 }

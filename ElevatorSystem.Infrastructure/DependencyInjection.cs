@@ -31,7 +31,7 @@ public static class DependencyInjection
         services.AddSingleton<IElevatorMovementService, ElevatorMovementService>();
         services.AddSingleton<IElevatorRequestManager, ElevatorRequestManager>();
         
-        // Shared collections for elevator state (Phase 2 command infrastructure)
+        // Shared collections for elevator state management
         services.AddSingleton<ConcurrentDictionary<int, ConcurrentBag<ElevatorRequest>>>();
         services.AddSingleton<ConcurrentDictionary<int, ConcurrentDictionary<int, bool>>>();
         services.AddSingleton<ConcurrentDictionary<int, object>>();
@@ -42,23 +42,23 @@ public static class DependencyInjection
         // Scenario reader for file-based simulation
         services.AddSingleton<IScenarioReader, ScenarioFileReader>();
         
-        // Event infrastructure (Phase 1 - In-memory implementations)
+        // Event infrastructure (In-memory implementations)
         services.AddSingleton<IEventBus, InMemoryEventBus>();
         services.AddSingleton<ICommandBus, InMemoryCommandBus>();
         
         // Event handlers
         services.AddSingleton<ElevatorEventLogger>();
         
-        // Phase 3: Robust processing pipeline services
+        // Robust processing pipeline services
         services.AddSingleton<IRetryPolicyManager, RetryPolicyManager>();
         services.AddSingleton<IRequestStatusTracker, RequestStatusTracker>();
         services.AddSingleton<IHealthMonitor, HealthMonitor>();
         
-        // Essential command handlers for robust pipeline
-        services.AddSingleton<SubmitElevatorRequestCommandHandler>();        // Phase 3 entry point
-        services.AddSingleton<AddElevatorRequestCommandHandler>();           // Phase 2 internal processing
-        services.AddSingleton<ProcessElevatorCommandHandler>();              // Phase 2 elevator operations
-        services.AddSingleton<UpdateRequestStatusCommandHandler>();          // Phase 3 status updates
+        // Command handlers for request processing pipeline
+        services.AddSingleton<SubmitElevatorRequestCommandHandler>();
+        services.AddSingleton<AddElevatorRequestCommandHandler>();
+        services.AddSingleton<ProcessElevatorCommandHandler>(); 
+        services.AddSingleton<UpdateRequestStatusCommandHandler>();     
         
         return services;
     }

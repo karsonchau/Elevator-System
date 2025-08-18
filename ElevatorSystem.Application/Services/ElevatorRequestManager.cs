@@ -58,7 +58,7 @@ public class ElevatorRequestManager : IElevatorRequestManager
             await RetryRepositoryUpdateAsync(() => _requestRepository.UpdateAsync(request), 
                 request.Id, "dropoff completion", cancellationToken);
                 
-            // Publish passenger dropped off event (Phase 1 event infrastructure)
+            // Publish passenger dropped off event for monitoring and logging
             var dropoffEvent = new PassengerDroppedOffEvent(request.Id, elevator.Id, currentFloor);
             await _eventBus.PublishAsync(dropoffEvent, cancellationToken);
             
@@ -83,7 +83,7 @@ public class ElevatorRequestManager : IElevatorRequestManager
             await RetryRepositoryUpdateAsync(() => _requestRepository.UpdateAsync(request), 
                 request.Id, "pickup assignment", cancellationToken);
                 
-            // Publish passenger picked up event (Phase 1 event infrastructure)
+            // Publish passenger picked up event for monitoring and logging
             var pickupEvent = new PassengerPickedUpEvent(request.Id, elevator.Id, currentFloor, request.DestinationFloor);
             await _eventBus.PublishAsync(pickupEvent, cancellationToken);
             

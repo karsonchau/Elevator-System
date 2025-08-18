@@ -5,9 +5,9 @@ using System.Collections.Concurrent;
 namespace ElevatorSystem.Infrastructure.Events;
 
 /// <summary>
-/// In-memory event bus implementation for Phase 1
+/// In-memory event bus implementation for single-instance deployments
 /// Note: This implementation is not suitable for production horizontal scaling
-/// It will be replaced with a distributed event bus (e.g., Azure Service Bus, RabbitMQ) in later phases
+/// For distributed deployments, replace with Azure Service Bus, RabbitMQ, or similar
 /// </summary>
 public class InMemoryEventBus : IEventBus
 {

@@ -24,10 +24,10 @@ public class Program
         
         await InitializeElevators(host.Services);
         
-        // Initialize event infrastructure (Phase 1)
+        // Initialize event infrastructure  
         await InitializeEventHandlers(host.Services);
         
-        // Initialize command infrastructure (Phase 2)
+        // Initialize command infrastructure
         await InitializeCommandHandlers(host.Services);
         
         var elevatorController = host.Services.GetRequiredService<IElevatorController>();
@@ -219,7 +219,7 @@ public class Program
         var eventLogger = services.GetRequiredService<ElevatorEventLogger>();
         var logger = services.GetRequiredService<ILogger<Program>>();
 
-        // Subscribe to all elevator events for Phase 1 demonstration
+        // Subscribe to all elevator events for logging and monitoring
         eventBus.Subscribe<ElevatorMovedEvent>(eventLogger.HandleElevatorMovedEvent);
         eventBus.Subscribe<PassengerPickedUpEvent>(eventLogger.HandlePassengerPickedUpEvent);
         eventBus.Subscribe<PassengerDroppedOffEvent>(eventLogger.HandlePassengerDroppedOffEvent);
@@ -237,7 +237,7 @@ public class Program
         var commandBus = services.GetRequiredService<ICommandBus>();
         var logger = services.GetRequiredService<ILogger<Program>>();
 
-        // Register essential command handlers for robust processing pipeline
+        // Register command handlers for request processing pipeline
         commandBus.RegisterHandler<SubmitElevatorRequestCommand, bool>(
             services.GetRequiredService<SubmitElevatorRequestCommandHandler>());
         commandBus.RegisterHandler<AddElevatorRequestCommand, bool>(

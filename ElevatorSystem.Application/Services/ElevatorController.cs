@@ -102,7 +102,7 @@ public class ElevatorController : IElevatorController, IDisposable
                     healthStatus.Status, elevator.Id, string.Join(", ", healthStatus.Issues));
             }
 
-            // Use the existing ProcessElevatorCommand (from Phase 2)
+            // Process elevator operations via command pipeline
             var command = new ProcessElevatorCommand(elevator);
             await _commandBus.SendAsync(command, cancellationToken);
             

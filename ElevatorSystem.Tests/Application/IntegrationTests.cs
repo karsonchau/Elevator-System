@@ -10,7 +10,7 @@ using Xunit;
 namespace ElevatorSystem.Tests.Application;
 
 /// <summary>
-/// Integration tests to verify Phase 3 components work together correctly
+/// Integration tests to verify robust processing components work together correctly
 /// </summary>
 public class IntegrationTests
 {

@@ -1,6 +1,6 @@
 # Elevator System
 
-A clean architecture implementation of an elevator control system simulator built with .NET 8.
+A production-ready elevator control system with robust processing, health monitoring, and event-driven architecture built with .NET 8.
 
 ## Architecture
 
@@ -13,11 +13,14 @@ This project follows Clean Architecture principles with clear separation of conc
 
 ## Key Features
 
-- **Single Elevator System** - Currently designed for one elevator operations
-- **In-Memory Storage** - Uses in-memory repositories for elevator and request queues (closed system)
+- **Production-Ready Architecture** - Robust processing with retry policies, health monitoring, and circuit breakers
+- **Event-Driven Design** - Comprehensive event infrastructure for monitoring and integration
+- **Command-Based Processing** - CQRS pattern with reliable request processing pipeline  
+- **Health Monitoring** - Real-time system health tracking and performance metrics
+- **Retry & Circuit Breaker** - Exponential backoff and failure protection mechanisms
 - **File-Based Scenarios** - Load elevator request scenarios from JSON configuration
-- **Real-Time Simulation** - Time-based request processing with configurable timing
 - **Comprehensive Logging** - Detailed logging of elevator movements and request processing
+- **Queue-Ready Architecture** - Designed for easy integration with external message queues
 
 ## System Assumptions
 
@@ -59,7 +62,7 @@ The simulator will:
 
 ### Configuration
 
-#### Elevator Settings (`appsettings.json`)
+#### Configuration (`appsettings.json`)
 
 ```json
 {
@@ -72,6 +75,12 @@ The simulator will:
   },
   "SimulationSettings": {
     "ScenarioFilePath": "scenarios.json"
+  },
+  "RequestProcessing": {
+    "RequestTimeoutMs": 30000,
+    "MaxRetryAttempts": 3,
+    "CircuitBreakerFailureThreshold": 5,
+    "HealthCheckIntervalMs": 5000
   }
 }
 ```
@@ -80,6 +89,10 @@ The simulator will:
 - `FloorMovementTimeMs` - Time to move between floors
 - `LoadingTimeMs` - Time for passenger loading/unloading
 - `ScenarioFilePath` - Path to scenarios file (relative to project root)
+- `RequestTimeoutMs` - Maximum time before request is considered timed out
+- `MaxRetryAttempts` - Number of retry attempts for failed requests
+- `CircuitBreakerFailureThreshold` - Failures needed to trigger circuit breaker
+- `HealthCheckIntervalMs` - Interval for system health monitoring
 
 ## Updating Scenarios
 
@@ -165,19 +178,51 @@ ElevatorSystem/
 
 ## Key Components
 
-- **ElevatorController** - Manages elevator request assignment and processing
-- **ElevatorMovementService** - Handles elevator movement logic and timing
+### Core Services
+- **ElevatorController** - Production-ready controller with failure handling and monitoring
+- **ElevatorMovementService** - Handles elevator movement logic and optimization
 - **ElevatorRequestManager** - Manages pickup and dropoff operations
 - **ScenarioFileReader** - Loads simulation scenarios from JSON files
-- **InMemoryRepositories** - Provide data persistence for the closed system
 
-## Logging
+### Robust Processing Pipeline
+- **RetryPolicyManager** - Exponential backoff and circuit breaker implementation
+- **HealthMonitor** - System health tracking and performance metrics
+- **RequestStatusTracker** - Request timeout monitoring and status management
 
-The system provides comprehensive logging including:
-- Elevator initialization and configuration
-- Request processing and assignment
-- Floor-by-floor movement tracking
-- Passenger pickup and dropoff events
-- System state verification
+### Event & Command Infrastructure  
+- **Command Handlers** - Reliable request processing with validation and retry logic
+- **Event System** - Comprehensive event logging and system monitoring
+- **Message Attributes** - Queue-ready metadata for external message systems
 
-Monitor the console output during simulation to observe elevator behavior and system performance.
+## Logging & Monitoring
+
+The system provides comprehensive logging and monitoring including:
+- **Request Processing** - Full request lifecycle tracking with retry attempts
+- **System Health** - Performance metrics, success rates, and health status
+- **Circuit Breaker** - Failure tracking and circuit breaker status changes
+- **Elevator Operations** - Floor-by-floor movement and passenger operations
+- **Event System** - Complete audit trail of all elevator events
+
+Monitor the console output during simulation to observe system behavior, health metrics, and performance characteristics.
+
+## Production Considerations
+
+### Scalability
+- **Current**: Single-instance deployment with in-memory storage
+- **Production**: Replace InMemoryEventBus/CommandBus with distributed alternatives:
+  - Azure Service Bus, RabbitMQ, or Kafka for event/command processing
+  - SQL Server, PostgreSQL, or MongoDB for persistent storage
+  - Redis for caching and distributed state management
+
+### High Availability
+- **Health Monitoring**: Built-in health checks ready for load balancer integration
+- **Circuit Breaker**: Automatic failure protection and recovery
+- **Retry Logic**: Exponential backoff for transient failure handling
+- **Queue Ready**: Message attributes prepared for external queue systems
+
+### Deployment
+The system is designed for containerized deployment with:
+- Configurable settings via `appsettings.json` or environment variables
+- Health check endpoints for Kubernetes/Docker health monitoring
+- Structured logging ready for centralized log aggregation
+- Metrics collection for monitoring dashboards

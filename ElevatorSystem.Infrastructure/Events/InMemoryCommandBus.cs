@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 namespace ElevatorSystem.Infrastructure.Events;
 
 /// <summary>
-/// In-memory command bus implementation for Phase 1
+/// In-memory command bus implementation for single-instance deployments
 /// Note: This implementation is not suitable for production horizontal scaling
 /// </summary>
 public class InMemoryCommandBus : ICommandBus
