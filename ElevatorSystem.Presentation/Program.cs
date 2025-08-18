@@ -5,7 +5,6 @@ using ElevatorSystem.Application.Events;
 using ElevatorSystem.Application.Events.Handlers;
 using ElevatorSystem.Application.Events.ElevatorEvents;
 using ElevatorSystem.Application.Events.CommandHandlers;
-using ElevatorSystem.Application.Events.CommandValidators;
 using ElevatorSystem.Application.Events.ElevatorCommands;
 using ElevatorSystem.Domain.Entities;
 using ElevatorSystem.Domain.Enums;
@@ -238,31 +237,17 @@ public class Program
         var commandBus = services.GetRequiredService<ICommandBus>();
         var logger = services.GetRequiredService<ILogger<Program>>();
 
-        // Register command handlers (Phase 2)
-        var addRequestHandler = services.GetRequiredService<AddElevatorRequestCommandHandler>();
-        var processElevatorHandler = services.GetRequiredService<ProcessElevatorCommandHandler>();
-        
-        commandBus.RegisterHandler<AddElevatorRequestCommand, bool>(addRequestHandler);
-        commandBus.RegisterHandler<ProcessElevatorCommand>(processElevatorHandler);
-        
-        // Register command handlers (Phase 3)
-        var submitRequestHandler = services.GetRequiredService<SubmitElevatorRequestCommandHandler>();
-        var updateStatusHandler = services.GetRequiredService<UpdateRequestStatusCommandHandler>();
-        
-        commandBus.RegisterHandler<SubmitElevatorRequestCommand, bool>(submitRequestHandler);
-        commandBus.RegisterHandler<UpdateRequestStatusCommand>(updateStatusHandler);
+        // Register essential command handlers for robust processing pipeline
+        commandBus.RegisterHandler<SubmitElevatorRequestCommand, bool>(
+            services.GetRequiredService<SubmitElevatorRequestCommandHandler>());
+        commandBus.RegisterHandler<AddElevatorRequestCommand, bool>(
+            services.GetRequiredService<AddElevatorRequestCommandHandler>());
+        commandBus.RegisterHandler<ProcessElevatorCommand>(
+            services.GetRequiredService<ProcessElevatorCommandHandler>());
+        commandBus.RegisterHandler<UpdateRequestStatusCommand>(
+            services.GetRequiredService<UpdateRequestStatusCommandHandler>());
 
-        // Register command validators (if the command bus supports it)
-        if (commandBus is Infrastructure.Events.InMemoryCommandBus inMemoryCommandBus)
-        {
-            var addRequestValidator = services.GetRequiredService<AddElevatorRequestCommandValidator>();
-            var processElevatorValidator = services.GetRequiredService<ProcessElevatorCommandValidator>();
-            
-            inMemoryCommandBus.RegisterValidator<AddElevatorRequestCommand>(addRequestValidator);
-            inMemoryCommandBus.RegisterValidator<ProcessElevatorCommand>(processElevatorValidator);
-        }
-
-        logger.LogInformation("Command handlers and validators initialized successfully");
+        logger.LogInformation("Command handlers initialized successfully");
         
         await Task.CompletedTask;
     }

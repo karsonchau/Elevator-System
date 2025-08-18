@@ -3,7 +3,6 @@ using ElevatorSystem.Application.Services;
 using ElevatorSystem.Application.Events;
 using ElevatorSystem.Application.Events.Handlers;
 using ElevatorSystem.Application.Events.CommandHandlers;
-using ElevatorSystem.Application.Events.CommandValidators;
 using ElevatorSystem.Application.Events.ElevatorCommands;
 using ElevatorSystem.Application.Configuration;
 using ElevatorSystem.Infrastructure.Repositories;
@@ -51,22 +50,16 @@ public static class DependencyInjection
         // Event handlers
         services.AddSingleton<ElevatorEventLogger>();
         
-        // Command handlers (Phase 2)
-        services.AddSingleton<AddElevatorRequestCommandHandler>();
-        services.AddSingleton<ProcessElevatorCommandHandler>();
-        
-        // Command validators (Phase 2)
-        services.AddSingleton<AddElevatorRequestCommandValidator>();
-        services.AddSingleton<ProcessElevatorCommandValidator>();
-        
         // Phase 3: Robust processing pipeline services
         services.AddSingleton<IRetryPolicyManager, RetryPolicyManager>();
         services.AddSingleton<IRequestStatusTracker, RequestStatusTracker>();
         services.AddSingleton<IHealthMonitor, HealthMonitor>();
         
-        // Phase 3: Enhanced command handlers
-        services.AddSingleton<SubmitElevatorRequestCommandHandler>();
-        services.AddSingleton<UpdateRequestStatusCommandHandler>();
+        // Essential command handlers for robust pipeline
+        services.AddSingleton<SubmitElevatorRequestCommandHandler>();        // Phase 3 entry point
+        services.AddSingleton<AddElevatorRequestCommandHandler>();           // Phase 2 internal processing
+        services.AddSingleton<ProcessElevatorCommandHandler>();              // Phase 2 elevator operations
+        services.AddSingleton<UpdateRequestStatusCommandHandler>();          // Phase 3 status updates
         
         return services;
     }
