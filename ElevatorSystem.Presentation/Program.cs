@@ -148,21 +148,35 @@ public class Program
                 (int)(DateTime.UtcNow - simulationStartTime).TotalMilliseconds, scenario.CurrentFloor, scenario.DestinationFloor);
             
             var request = new ElevatorRequest(scenario.CurrentFloor, scenario.DestinationFloor);
-            requests.Add(request);
-            await elevatorController.AddRequestAsync(request);
+            var success = await elevatorController.AddRequestAsync(request);
+            
+            // Only track requests that were successfully added to the system
+            if (success)
+            {
+                requests.Add(request);
+            }
+            else
+            {
+                logger.LogWarning("Request from floor {CurrentFloor} to {DestinationFloor} was rejected by the system", 
+                    scenario.CurrentFloor, scenario.DestinationFloor);
+            }
         }
         
         logger.LogInformation("All requests submitted. Waiting for completion...");
         
+        // Add timeout to prevent infinite waiting
+        var timeout = TimeSpan.FromSeconds(60);
+        var timeoutCts = new CancellationTokenSource(timeout);
         var allCompleted = false;
+        var completedCount = 0;
         
-        while (!allCompleted)
+        while (!allCompleted && !timeoutCts.Token.IsCancellationRequested)
         {
-            await Task.Delay(200);
+            await Task.Delay(200, timeoutCts.Token);
             
             // Movement path is pre-calculated based on expected behavior
             
-            var completedCount = 0;
+            completedCount = 0;
             foreach (var request in requests)
             {
                 var updatedRequest = await requestRepository.GetByIdAsync(request.Id);
@@ -175,10 +189,29 @@ public class Program
             allCompleted = completedCount == requests.Count;
         }
         
+        if (timeoutCts.Token.IsCancellationRequested && !allCompleted)
+        {
+            logger.LogWarning("Timeout reached while waiting for request completion. {CompletedCount}/{TotalCount} requests completed.", 
+                completedCount, requests.Count);
+        }
+        
         // Wait a moment for final elevator actions to complete
         await Task.Delay(2000);
         
         // Get final elevator status and verify idle state
+        await VerifyElevatorFloor(elevatorRepository, logger, scenarios);
+
+        logger.LogInformation("=== Single Elevator Simulation Complete ===");
+    }
+
+    private static async Task VerifyElevatorFloor(IElevatorRepository elevatorRepository, ILogger<Program> logger,
+        IEnumerable<ElevatorScenario> scenarios)
+    {
+        if (scenarios == null || scenarios.Count() == 0)
+        {
+            return;
+        }
+
         var elevators = await elevatorRepository.GetAllAsync();
         var lastDestinationFloor = scenarios.Last().DestinationFloor;
         
@@ -209,8 +242,6 @@ public class Program
                 Console.WriteLine($"Elevator {elevator.Id} is at floor {elevator.CurrentFloor} but should be at floor {lastDestinationFloor}");
             }
         }
-        
-        logger.LogInformation("=== Single Elevator Simulation Complete ===");
     }
 
     private static async Task InitializeEventHandlers(IServiceProvider services)

@@ -15,16 +15,19 @@ public class SubmitElevatorRequestCommandHandler : BaseCommandHandler<SubmitElev
     private readonly ICommandBus _commandBus;
     private readonly IRetryPolicyManager _retryPolicyManager;
     private readonly IElevatorRequestRepository _requestRepository;
+    private readonly IElevatorRepository _elevatorRepository;
 
     public SubmitElevatorRequestCommandHandler(
         ICommandBus commandBus,
         IRetryPolicyManager retryPolicyManager,
         IElevatorRequestRepository requestRepository,
+        IElevatorRepository elevatorRepository,
         ILogger<SubmitElevatorRequestCommandHandler> logger) : base(logger)
     {
         _commandBus = commandBus;
         _retryPolicyManager = retryPolicyManager;
         _requestRepository = requestRepository;
+        _elevatorRepository = elevatorRepository;
     }
 
     protected override async Task<bool> ExecuteAsync(SubmitElevatorRequestCommand command, CancellationToken cancellationToken)
@@ -54,9 +57,16 @@ public class SubmitElevatorRequestCommandHandler : BaseCommandHandler<SubmitElev
             }
             else
             {
+                // Check if this is a validation failure by checking if the request can be served by any elevator
+                var elevators = await _elevatorRepository.GetAllAsync();
+                var isValidationFailure = elevators.All(e => !e.CanServeFloor(request.CurrentFloor) || !e.CanServeFloor(request.DestinationFloor));
+                
+                Exception exception = isValidationFailure 
+                    ? new ArgumentOutOfRangeException(nameof(request), "Request validation failed - invalid floor range")
+                    : new InvalidOperationException("Request processing failed");
+                
                 // Handle failure
-                await HandleRequestFailure(request, command.AttemptNumber, 
-                    new InvalidOperationException("Request processing failed"), cancellationToken);
+                await HandleRequestFailure(request, command.AttemptNumber, exception, cancellationToken);
                 return false;
             }
         }
@@ -72,11 +82,19 @@ public class SubmitElevatorRequestCommandHandler : BaseCommandHandler<SubmitElev
 
     private async Task HandleRequestFailure(ElevatorRequest request, int attemptNumber, Exception exception, CancellationToken cancellationToken)
     {
-        // Record failure for circuit breaker
-        _retryPolicyManager.RecordFailure(request.Id, exception);
+        // Don't record validation failures as retry failures - they are expected for invalid input and will never succeed
+        var isValidationFailure = exception is ArgumentOutOfRangeException || 
+                                 exception is ArgumentException ||
+                                 (exception is InvalidOperationException && exception.Message.Contains("validation failed", StringComparison.OrdinalIgnoreCase));
+        
+        if (!isValidationFailure)
+        {
+            // Record failure for circuit breaker only for non-validation failures
+            _retryPolicyManager.RecordFailure(request.Id, exception);
+        }
 
-        // Check if we should retry
-        if (_retryPolicyManager.ShouldRetry(request, attemptNumber))
+        // Check if we should retry (don't retry validation failures)
+        if (!isValidationFailure && _retryPolicyManager.ShouldRetry(request, attemptNumber))
         {
             // Update status to retrying
             await UpdateRequestStatusAsync(request.Id, ElevatorRequestStatus.Retrying, 

@@ -14,6 +14,7 @@ public class ElevatorController : IElevatorController, IDisposable
     private readonly ICommandBus _commandBus;
     private readonly IRequestStatusTracker _statusTracker;
     private readonly IHealthMonitor _healthMonitor;
+    private readonly IElevatorRepository _elevatorRepository;
     private readonly ILogger<ElevatorController> _logger;
     private volatile bool _disposed = false;
 
@@ -21,11 +22,13 @@ public class ElevatorController : IElevatorController, IDisposable
         ICommandBus commandBus,
         IRequestStatusTracker statusTracker,
         IHealthMonitor healthMonitor,
+        IElevatorRepository elevatorRepository,
         ILogger<ElevatorController> logger)
     {
         _commandBus = commandBus;
         _statusTracker = statusTracker;
         _healthMonitor = healthMonitor;
+        _elevatorRepository = elevatorRepository;
         _logger = logger;
     }
 
@@ -59,7 +62,16 @@ public class ElevatorController : IElevatorController, IDisposable
             }
             else
             {
-                _healthMonitor.RecordFailure("AddRequest", new InvalidOperationException("Request submission failed"));
+                // Check if this is a validation failure by checking if any elevator can serve this request
+                var elevators = await _elevatorRepository.GetAllAsync();
+                var isValidationFailure = elevators.All(e => !e.CanServeFloor(request.CurrentFloor) || !e.CanServeFloor(request.DestinationFloor));
+                
+                if (!isValidationFailure)
+                {
+                    // Only record non-validation failures as health monitor failures
+                    _healthMonitor.RecordFailure("AddRequest", new InvalidOperationException("Request submission failed"));
+                }
+                
                 _logger.LogWarning("Failed to submit elevator request {RequestId} to processing pipeline", request.Id);
             }
                 
@@ -68,7 +80,6 @@ public class ElevatorController : IElevatorController, IDisposable
         catch (ArgumentException ex)
         {
             stopwatch.Stop();
-            _healthMonitor.RecordFailure("AddRequest", ex);
             _logger.LogWarning("Validation failed for request {RequestId}: {Error}", request?.Id, ex.Message);
             return false;
         }
@@ -92,7 +103,7 @@ public class ElevatorController : IElevatorController, IDisposable
         
         try
         {
-            _logger.LogDebug("Starting robust elevator processing for elevator {ElevatorId}", elevator.Id);
+            _logger.LogDebug("Starting elevator processing for elevator {ElevatorId}", elevator.Id);
 
             // Check system health before processing
             if (!_healthMonitor.IsHealthy())
@@ -109,7 +120,7 @@ public class ElevatorController : IElevatorController, IDisposable
             stopwatch.Stop();
             _healthMonitor.RecordSuccess("ProcessElevator", stopwatch.Elapsed);
             
-            _logger.LogInformation("Completed robust elevator processing for elevator {ElevatorId}", elevator.Id);
+            _logger.LogInformation("Completed elevator processing for elevator {ElevatorId}", elevator.Id);
         }
         catch (OperationCanceledException)
         {

@@ -58,6 +58,39 @@ public class ProcessElevatorCommandHandler : BaseCommandHandler<ProcessElevatorC
                     continue;
                 }
 
+                // Check for and clean up invalid requests before processing
+                var invalidRequests = activeRequests.Where(r => 
+                    r.Status == ElevatorRequestStatus.Assigned &&
+                    (!elevator.CanServeFloor(r.CurrentFloor) || !elevator.CanServeFloor(r.DestinationFloor))).ToList();
+                    
+                if (invalidRequests.Any())
+                {
+                    Logger.LogWarning("Found {InvalidCount} invalid requests for elevator {ElevatorId} before processing. Cleaning up to prevent infinite loops.", 
+                        invalidRequests.Count, elevator.Id);
+                        
+                    foreach (var invalidRequest in invalidRequests)
+                    {
+                        Logger.LogWarning("Removing invalid request: elevator {ElevatorId} cannot serve floors {CurrentFloor} to {DestinationFloor}. Valid range: {MinFloor}-{MaxFloor}",
+                            elevator.Id, invalidRequest.CurrentFloor, invalidRequest.DestinationFloor, elevator.MinFloor, elevator.MaxFloor);
+                        invalidRequest.Status = ElevatorRequestStatus.Completed;
+                    }
+                    
+                    // Remove invalid requests from collections
+                    RemoveCompletedRequestsFromCollections(elevator.Id, activeRequests);
+                    
+                    // Check again if we have any valid requests left
+                    activeRequests = GetActiveRequestsList(elevator.Id);
+                    if (!activeRequests.Any())
+                    {
+                        Logger.LogInformation("No valid requests remaining for elevator {ElevatorId} after cleanup", elevator.Id);
+                        elevator.SetStatus(ElevatorStatus.Idle);
+                        elevator.SetDirection(ElevatorDirection.Idle);
+                        await _elevatorRepository.UpdateAsync(elevator);
+                        await Task.Delay(100, cancellationToken);
+                        continue;
+                    }
+                }
+
                 await ExecuteLinearScanMovement(elevator, cancellationToken);
             }
             catch (OperationCanceledException)
@@ -127,15 +160,72 @@ public class ProcessElevatorCommandHandler : BaseCommandHandler<ProcessElevatorC
                     // If still no floor to service, check for any unserviced requests
                     if (!nextServiceFloor.HasValue)
                     {
-                        // Find any unserviced request and move towards it
-                        var anyRequest = currentRequests.FirstOrDefault(r => r.Status == ElevatorRequestStatus.Assigned);
-                        if (anyRequest != null)
+                        // Find any unserviced request that the elevator can actually serve
+                        var validRequest = currentRequests.FirstOrDefault(r => 
+                            r.Status == ElevatorRequestStatus.Assigned &&
+                            elevator.CanServeFloor(r.CurrentFloor) &&
+                            elevator.CanServeFloor(r.DestinationFloor));
+                            
+                        if (validRequest != null)
                         {
-                            nextServiceFloor = anyRequest.CurrentFloor;
+                            nextServiceFloor = validRequest.CurrentFloor;
                             direction = nextServiceFloor.Value > elevator.CurrentFloor ? ElevatorDirection.Up : ElevatorDirection.Down;
                             elevator.SetDirection(direction);
                         }
+                        else
+                        {
+                            // Remove invalid requests to prevent infinite loop
+                            var invalidRequests = currentRequests.Where(r => 
+                                r.Status == ElevatorRequestStatus.Assigned &&
+                                (!elevator.CanServeFloor(r.CurrentFloor) || !elevator.CanServeFloor(r.DestinationFloor))).ToList();
+                                
+                            if (invalidRequests.Any())
+                            {
+                                foreach (var invalidRequest in invalidRequests)
+                                {
+                                    Logger.LogWarning("Removing invalid request: elevator {ElevatorId} cannot serve floors {CurrentFloor} to {DestinationFloor}. Valid range: {MinFloor}-{MaxFloor}",
+                                        elevator.Id, invalidRequest.CurrentFloor, invalidRequest.DestinationFloor, elevator.MinFloor, elevator.MaxFloor);
+                                    invalidRequest.Status = ElevatorRequestStatus.Completed;
+                                }
+                                
+                                // Remove invalid requests from collections
+                                RemoveCompletedRequestsFromCollections(elevator.Id, currentRequests);
+                                
+                                // Refresh requests after cleanup to check if we should continue
+                                requests = GetActiveRequestsList(elevator.Id);
+                            }
+                            
+                            // If no valid requests remain or no invalid requests were found, exit the loop
+                            if (!requests.Any())
+                            {
+                                Logger.LogInformation("No more valid requests for elevator {ElevatorId}, exiting processing loop", elevator.Id);
+                                break;
+                            }
+                            
+                            // If we still have requests but no floors to service, this might indicate a sync issue
+                            // Clean up any remaining problematic requests and force exit to prevent infinite loop
+                            Logger.LogWarning("Elevator {ElevatorId} has {RequestCount} requests but no serviceable floors. Cleaning up remaining requests and exiting processing loop.", 
+                                elevator.Id, requests.Count);
+                                
+                            // Mark all remaining assigned requests as completed to prevent re-processing
+                            var remainingRequests = requests.Where(r => r.Status == ElevatorRequestStatus.Assigned).ToList();
+                            foreach (var request in remainingRequests)
+                            {
+                                Logger.LogWarning("Force-completing stuck request: floors {CurrentFloor} to {DestinationFloor}", 
+                                    request.CurrentFloor, request.DestinationFloor);
+                                request.Status = ElevatorRequestStatus.Completed;
+                            }
+                            
+                            // Clean up collections
+                            RemoveCompletedRequestsFromCollections(elevator.Id, requests);
+                            break;
+                        }
                     }
+                }
+                else
+                {
+                    // No current requests, should exit immediately
+                    break;
                 }
             }
             
